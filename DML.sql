@@ -16,13 +16,13 @@ INSERT INTO bicicleta (modelo, marca, precio, stock) VALUES ('Urban Glide', 'Gia
 INSERT INTO bicicleta (modelo, marca, precio, stock) VALUES ('E-Bike 3000', 'Cannondale', 2500.00, 5);
 
 -- Insertar en cliente
-INSERT INTO cliente (id, nombre, correo, telefono, ciudadId) VALUES ('C001', 'Juan Pérez', 'juan.perez@example.com', '3001234567', 1);
-INSERT INTO cliente (id, nombre, correo, telefono, ciudadId) VALUES ('C002', 'Ana Gómez', 'ana.gomez@example.com', '3009876543', 2);
-INSERT INTO cliente (id, nombre, correo, telefono, ciudadId) VALUES ('C003', 'Luis Martínez', 'luis.martinez@example.com', '3005647382', 3);
+INSERT INTO cliente (id, nombre, correo, telefono, ciudadId) VALUES ('001', 'Juan Pérez', 'juan.perez@example.com', '3001234567', 1);
+INSERT INTO cliente (id, nombre, correo, telefono, ciudadId) VALUES ('002', 'Ana Gómez', 'ana.gomez@example.com', '3009876543', 2);
+INSERT INTO cliente (id, nombre, correo, telefono, ciudadId) VALUES ('003', 'Luis Martínez', 'luis.martinez@example.com', '3005647382', 3);
 
 -- Insertar en venta
-INSERT INTO venta (id, clienteId, total) VALUES (1, 'C001', 1800.00);
-INSERT INTO venta (id, clienteId, total) VALUES (2, 'C002', 800.00);
+INSERT INTO venta (id, clienteId, total) VALUES (1, '001', 1800.00);
+INSERT INTO venta (id, clienteId, total) VALUES (2, '002', 800.00);
 
 -- Insertar en detalleVenta
 INSERT INTO detalleVenta (ventaId, bicicletaId, cantidad, precioUnitario) VALUES (1, 1, 1, 1200.00);
