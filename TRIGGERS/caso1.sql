@@ -2,12 +2,12 @@
 
     -- !!!!!!!! BEFORE INSERT !!!!!!!!!! --
 DELIMITER $$
-DROP TRIGGER IF EXISTS stockNegativoIns;
+DROP TRIGGER IF EXISTS stockNegativoIns $$
 CREATE TRIGGER stockNegativoIns
-BEFORE INSERT ON Bicicletas
+BEFORE INSERT ON bicicleta
 FOR EACH ROW
 BEGIN
-    IF NEW.Stock < 0 THEN -- Si se inserta un valor negativo para el stock --
+    IF NEW.stock < 0 THEN -- Si se inserta un valor negativo para el stock --
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El stock no puede ser negativo'; -- Enviar un mensaje --
     END IF;
 END $$
@@ -16,12 +16,12 @@ DELIMITER ;
 
     -- !!!!!!!!! BEFORE UPDATE !!!!!!!! --
 DELIMITER $$
-DROP TRIGGER IF EXISTS stockNegativoUpd;
+DROP TRIGGER IF EXISTS stockNegativoUpd$$
 CREATE TRIGGER stockNegativoUpd
-BEFORE UPDATE ON Bicicletas
+BEFORE UPDATE ON bicicleta
 FOR EACH ROW
 BEGIN
-    IF NEW.Stock < 0 THEN
+    IF NEW.stock < 0 THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El stock no puede ser negativo';
     END IF;
 END $$
