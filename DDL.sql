@@ -30,7 +30,7 @@ CREATE TABLE bicicleta(
 CREATE TABLE cliente(
 	id VARCHAR(10) NOT NULL,
 	nombre VARCHAR(30) NOT NULL,
-	correo VARCHAR(30),
+	correo VARCHAR(100),
 	telefono VARCHAR(20),
 	ciudadId INT NOT NULL,
 	CONSTRAINT Pk_cliente PRIMARY KEY (id),
@@ -63,7 +63,7 @@ CREATE TABLE proveedor(
 	nombre VARCHAR(50) NOT NULL,
 	contacto VARCHAR(30) NOT NULL,
 	telefono VARCHAR(20) NOT NULL,
-	correo VARCHAR(20),
+	correo VARCHAR(100),
 	ciudadId INT NOT NULL,
 	CONSTRAINT Pk_proveedores PRIMARY KEY (id),
 	CONSTRAINT Fk_proveedoresCiudad FOREIGN  KEY (ciudadId) REFERENCES ciudad(id),
@@ -73,7 +73,7 @@ CREATE TABLE proveedor(
 CREATE TABLE repuesto(
 	id INT AUTO_INCREMENT,
 	nombre VARCHAR(20) NOT NULL,
-	descripción VARCHAR(50),
+	descripcion VARCHAR(50),
 	precio DECIMAL(10,2) NOT NULL,
 	stock INT NOT NULL,
 	proveedorId INT NOT NULL,
