@@ -1,1 +1,1 @@
-<img src="diagramaBd.png">
+<img src="IMG/diagramaBd.png">
