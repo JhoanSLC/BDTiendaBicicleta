@@ -13,7 +13,7 @@ CREATE PROCEDURE registrarCompra(
     IN inFecha DATE,
     IN inProveedorId INT,
     IN inTotal DECIMAL(10, 2),
-    OUT inCompraId INT
+    OUT outCompraId INT
 )
 BEGIN
     -- Crear una nueva compra --
@@ -21,7 +21,7 @@ BEGIN
     VALUES (inFecha, inProveedorId, inTotal);
 
     -- Obtener el ID de la nueva compra creada --
-    SET CompraID = LAST_INSERT_ID();
+    SET outCompraId = LAST_INSERT_ID();
 END $$
 DELIMITER ;
 
