@@ -24,7 +24,8 @@ CREATE TABLE bicicleta(
 	marca VARCHAR(30) NOT NULL,
 	precio DECIMAL(10,2) NOT NULL,
 	stock INT NOT NULL,
-	CONSTRAINT Pk_bicicletas PRIMARY KEY (id)
+	CONSTRAINT Pk_bicicletas PRIMARY KEY (id),
+	CONSTRAINT Uc_bicicleta UNIQUE (modelo,marca)
 );
 
 CREATE TABLE cliente(
