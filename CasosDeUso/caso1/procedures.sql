@@ -9,11 +9,6 @@ CREATE PROCEDURE agregarBicicleta(
     IN newStock INT
 )
 BEGIN
-    -- Validar que el precio y el stock sean mayores o iguales a 0 --
-    IF newPrecio < 0 OR newStock < 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El precio y el stock deben ser mayores a 0';
-    END IF;
-
     -- Insertar la nueva bicicleta en la tabla bicicleta --
     INSERT INTO bicicleta (modelo, marca, precio, stock)
     VALUES (newModelo, newMarca, newPrecio, newStock);
@@ -35,11 +30,6 @@ CREATE PROCEDURE actualizarBicicleta(
     IN inStock INT
 )
 BEGIN
-    -- Validar que el precio y el stock sean mayores o iguales a 0 --
-    IF inPrecio < 0 OR inStock < 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El precio y el stock deben ser mayores o iguales a 0';
-    END IF;
-
     -- Actualizar la información de la bicicleta --
     UPDATE bicicleta
     SET precio = inPrecio, stock = inStock
