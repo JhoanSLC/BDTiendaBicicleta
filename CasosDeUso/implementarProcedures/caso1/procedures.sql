@@ -1,3 +1,30 @@
+/* Este procedure se usa para registrar una nueva venta
+    en el sistema */
+
+-- El procedure devuelve el id de la venta registrada --
+DELIMITER $$ 
+DROP PROCEDURE IF EXISTS registrarVenta$$
+CREATE PROCEDURE registrarVenta(
+    IN inClienteId VARCHAR(10),
+    OUT outVentaId INT 
+) 
+BEGIN 
+    /* Se crea una nueva venta con total inicial de 0
+        para que luego el sistema calcule el total en
+        base a los detalles de la venta */
+    INSERT INTO venta(fecha,clienteId,total)
+    VALUES (NOW(), inClienteId, 0);
+
+    /* Se saca el valor del id para utilizarlo luego */
+    SET outVentaId = LAST_INSERT_ID();
+END $$
+DELIMITER ;
+
+
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+
+
 /*
     Este procedimiento se encarga de actualizar el stock de las bicicletas 
     basandose en los detalles de la venta
@@ -17,6 +44,7 @@ BEGIN
     WHERE dv.ventaId = inVentaId;
 END $$
 DELIMITER ;
+
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -63,7 +91,7 @@ BEGIN
     UPDATE bicicleta
     SET stock = stock - inCantidad
     WHERE id = inBicicletaId;
-    
+
     CALL actualizarStockBicicleta(inVentaId);
 END $$
 DELIMITER ;
