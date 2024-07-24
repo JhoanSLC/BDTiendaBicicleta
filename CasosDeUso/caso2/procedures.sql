@@ -3,7 +3,7 @@
 
 -- El procedure devuelve el id de la venta registrada --
 DELIMITER $$ 
-DROP PROCEDURE IF IT EXISTS registrarVenta$$
+DROP PROCEDURE IF EXISTS registrarVenta$$
 CREATE PROCEDURE registrarVenta(
     IN inClienteId VARCHAR(10),
     OUT outVentaId INT 
@@ -43,16 +43,16 @@ BEGIN
     FROM bicicleta
     WHERE id = inBicicletaId;
     
-    -- Calcular el total del detalle
+    -- Calcular el total del detalle --
     SET totalDetalle = precioUnitario * inCantidad;
     
-    -- Insertar el detalle de la venta
+    -- Insertar el detalle de la venta --
     INSERT INTO detalleVenta (ventaId, bicicletaId, cantidad, precioUnitario)
     VALUES (inVentaId, inBicicletaId, inCantidad, precioUnitario);
     
     -- Actualizar el total de la venta --
     UPDATE venta
-    SET total = total + totalDetalle
+    SET total = totalDetalle
     WHERE id = inVentaId;
     
     -- Actualizar el inventario de bicicletas --
@@ -61,3 +61,6 @@ BEGIN
     WHERE id = inBicicletaId;
 END $$
 DELIMITER ;
+
+
+-- TESTEADO Y FUNCIONANDO --
