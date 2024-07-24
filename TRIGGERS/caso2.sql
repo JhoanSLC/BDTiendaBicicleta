@@ -5,7 +5,7 @@ que se pide  */
 DELIMITER $$
 DROP TRIGGER IF EXISTS stockEnVentaIns$$
 CREATE TRIGGER stockEnVentaIns
-AFTER INSERT ON detalles_Ventas
+AFTER INSERT ON detalleVenta
 FOR EACH ROW
 BEGIN
     UPDATE bicicleta
@@ -19,3 +19,41 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock insuficiente para la venta';
     END IF;
 END $$
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS actualizarPrecioUnitario$$
+CREATE PROCEDURE actualizarPrecioUnitario(
+    IN p_detalleVentaId INT,
+    IN p_bicicletaId INT
+)
+BEGIN
+    DECLARE v_precio DECIMAL(10,2);
+    
+    -- Obtener el precio de la bicicleta
+    SELECT precio INTO v_precio
+    FROM bicicleta
+    WHERE id = p_bicicletaId;
+
+    -- Actualizar el precioUnitario en detalleVenta
+    UPDATE detalleVenta
+    SET precioUnitario = v_precio
+    WHERE id = p_detalleVentaId;
+END $$
+
+DELIMITER ;
+
+
+/* Este trigger */
+DELIMITER $$
+DROP TRIGGER IF EXISTS agregarPrecioUnitarioIns$$
+CREATE TRIGGER agregarPrecioUnitarioIns
+BEFORE INSERT ON detalleVenta
+FOR EACH ROW
+BEGIN
+    CALL actualizarPrecioUnitario(NEW.id,NEW.bicicletaId);
+END $$
+DELIMITER ;
+
+
+
