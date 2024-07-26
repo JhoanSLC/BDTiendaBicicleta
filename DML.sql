@@ -43,3 +43,5 @@ INSERT INTO compra (proveedorId, total) VALUES (2, 2000.00);
 -- Insertar en detalleCompra
 INSERT INTO detalleCompra (compraId, repuestoId, cantidad, precioUnitario) VALUES (1, 1, 20, 150.00);
 INSERT INTO detalleCompra (compraId, repuestoId, cantidad, precioUnitario) VALUES (2, 2, 100, 20.00);
+
+-- TERMINADO --
