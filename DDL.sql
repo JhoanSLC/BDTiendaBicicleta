@@ -102,3 +102,5 @@ CREATE TABLE detalleCompra(
 	CONSTRAINT Fk_Compra FOREIGN KEY (compraId) REFERENCES compra(id),
 	CONSTRAINT Fk_Repuesto FOREIGN KEY (repuestoId) REFERENCES repuesto(id)
 );
+
+-- DDL TERMINADO --
