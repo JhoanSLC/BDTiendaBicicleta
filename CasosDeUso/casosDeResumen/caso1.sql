@@ -14,11 +14,11 @@ CREATE PROCEDURE ventasPorMes(
     in inMes INT
 )
 BEGIN
-
     SELECT SUM(total) AS totalVentas
     FROM venta
     WHERE MONTH(fecha) = inMes
     GROUP BY MONTH(fecha);
-    
 END$$
 DELIMITER ;
+
+-- TESTEADO Y FUNCIONANDO --
