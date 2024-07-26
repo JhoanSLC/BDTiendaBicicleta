@@ -1,8 +1,7 @@
-1. El administrador ingresa al sistema.
-2. El administrador selecciona la opción para calcular el promedio de compras mensuales.
-3. El sistema llama a un procedimiento almacenado para calcular el promedio de compras mensuales.
-4. El procedimiento almacenado devuelve el promedio de compras realizadas mensualmente.
-
+/*
+Este procedimiento devuelve una tabla con el año, el mes y el promedio de compras de ese
+mes en ese año
+*/
 
 DELIMITER $$
 DROP PROCEDURE IF EXISTS promedioComprasMensuales$$
