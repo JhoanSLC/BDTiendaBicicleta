@@ -1772,7 +1772,7 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el total de ventas por día de la semana.
 
 ```sql
-CALL totalVentasPorDiaSemana();
+CALL totalVentasPorDiaSemana(27);
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el total de ventas.
@@ -1781,13 +1781,16 @@ CALL totalVentasPorDiaSemana();
 ```sql
 DELIMITER $$
 DROP PROCEDURE IF EXISTS totalVentasPorDiaSemana$$
-CREATE PROCEDURE totalVentasPorDiaSemana()
+CREATE PROCEDURE totalVentasPorDiaSemana(
+    IN inDia INT
+)
 BEGIN
     SELECT 
-        DAYNAME(v.fecha) AS dia, 
+        DAY(v.fecha) AS dia, 
         SUM(v.total) AS totalVentas
     FROM venta v
-    GROUP BY DAYNAME(v.fecha);
+    WHERE DAY(v.fecha) = inDia
+    GROUP BY DAY(v.fecha);
 END $$
 DELIMITER ;
 ```
@@ -1805,14 +1808,28 @@ Flujo Principal:
 bicicleta.
 
 ```sql
-
+CALL ventasPorBicicleta(1);
 ```
 
 3. El sistema llama a un procedimiento almacenado para contar las ventas.
 4. El procedimiento almacenado devuelve el número de ventas por categoría de bicicleta.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS ventasPorBicicleta$$
+CREATE PROCEDURE ventasPorBicicleta(
+    IN inBicicletaId INT
+)
+BEGIN
+    SELECT 
+        dv.bicicletaId, 
+        SUM(dv.cantidad) AS cantidad, 
+        dv.precioUnitario
+    FROM detalleVenta dv
+    WHERE dv.bicicletaId = inBicicletaId
+    GROUP BY dv.bicicletaId, dv.precioUnitario;
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 15: Calcular el Total de Ventas por Año y Mes
@@ -1827,12 +1844,33 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el total de ventas por año y mes.
 
 ```sql
-
+CALL totalVentasAñoMes(7,2024);
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el total de ventas.
+
+````sql
+DELIMITER $$
+CREATE PROCEDURE totalVentasAñoMes(
+    IN inMes INT,
+    IN inAño INT
+)
+BEGIN 
+    SELECT  
+        SUM(v.total) AS totalVentas_año_mes
+    FROM venta v
+    WHERE (MONTH(v.fecha) = inMes) AND (YEAR(v.fecha) = inAño)
+    GROUP BY MONTH(v.fecha), YEAR(v.fecha);
+END$$
+DELIMITER ;
+```
 4. El procedimiento almacenado devuelve el total de ventas agrupadas por año y mes.
 
 ```sql
-
+DELIMITER $$
++---------------------+
+| totalVentas_año_mes |
++---------------------+
+|             2600.00 |
++---------------------+
 ```
