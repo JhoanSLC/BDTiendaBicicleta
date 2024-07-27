@@ -4,13 +4,16 @@ al total de ventas que se han hecho en ese día
 */
 DELIMITER $$
 DROP PROCEDURE IF EXISTS totalVentasPorDiaSemana$$
-CREATE PROCEDURE totalVentasPorDiaSemana()
+CREATE PROCEDURE totalVentasPorDiaSemana(
+    IN inDia INT
+)
 BEGIN
     SELECT 
-        DAYNAME(v.fecha) AS dia, 
+        DAY(v.fecha) AS dia, 
         SUM(v.total) AS totalVentas
     FROM venta v
-    GROUP BY DAYNAME(v.fecha);
+    WHERE DAY(v.fecha) = inDia
+    GROUP BY DAY(v.fecha);
 END $$
 DELIMITER ;
 

@@ -1,5 +1,7 @@
 <img src="IMG/diagramaDb.png">
 
+# Proyecto hecho por Jhoan Landazabal y Valentina Rivera
+
 # Casos de Uso para la Base de Datos
 
 ## Caso de Uso 1: Gestión de Inventario de Bicicletas
@@ -16,37 +18,84 @@ Flujo Principal:
 3. El administrador ingresa los detalles de la bicicleta (modelo, marca, precio, stock).
 
 ```sql
-
+CALL agregarBicicleta("BMX-32","BMX","120000","20");
 ```
 
 4. El sistema valida y guarda la información de la nueva bicicleta.
 
 ```sql
 
+DELIMITER $$
+DROP TRIGGER IF EXISTS stockNegativoIns $$
+CREATE TRIGGER stockNegativoIns
+BEFORE INSERT ON bicicleta
+FOR EACH ROW
+BEGIN
+    IF NEW.stock < 0 OR NEW.precio < 0 THEN -- Si se inserta un valor negativo para el stock --
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El "STOCK" y el "PRECIO" no pueden ser negativo'; -- Enviar un mensaje --
+    END IF;
+END $$
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS agregarBicicleta$$
+CREATE PROCEDURE agregarBicicleta(
+    IN newModelo VARCHAR(255),
+    IN newMarca VARCHAR(255),
+    IN newPrecio DECIMAL(10, 2),
+    IN newStock INT
+)
+BEGIN
+    -- Insertar la nueva bicicleta en la tabla bicicleta --
+    INSERT INTO bicicleta (modelo, marca, precio, stock)
+    VALUES (newModelo, newMarca, newPrecio, newStock);
+END$$
+DELIMITER ;
 ```
 
 5. El administrador selecciona una bicicleta existente para actualizar.
+6. El administrador actualiza la información (precio, stock).
 
 ```sql
-
+CALL actualizarBicicleta(1,"280000","15");
 ```
 
-6. El administrador actualiza la información (precio, stock).
+
 7. El sistema valida y guarda los cambios.
 
 ```sql
-
+DELIMITER $$
+DROP TRIGGER IF EXISTS stockNegativoUpd$$
+CREATE TRIGGER stockNegativoUpd
+BEFORE UPDATE ON bicicleta
+FOR EACH ROW
+BEGIN
+    IF NEW.stock < 0 OR NEW.precio < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El "STOCK" y el "PRECIO" no pueden ser negativo';
+    END IF;
+END $$
+DELIMITER ;
 ```
 
 8. El administrador selecciona una bicicleta para eliminar.
 
 ```sql
-
+CALL eliminarBicicleta(1)
 ```
 
 9. El sistema elimina la bicicleta seleccionada del inventario.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS eliminarBicicleta$$
+CREATE PROCEDURE eliminarBicicleta(
+    IN inBicicletaId INT
+)
+BEGIN
+    -- Eliminar la bicicleta de la tabla Bicicletas --
+    DELETE FROM bicicleta
+    WHERE id = inBicicletaID;
+END $$
+DELIMITER ;
 
 ```
 
@@ -62,22 +111,94 @@ Flujo Principal:
 1. El vendedor ingresa al sistema.
 2. El vendedor selecciona la opción para registrar una nueva venta.
 3. El vendedor selecciona el cliente que realiza la compra.
+
+```sql
+-- El "@VentaId" es una variable que va a guardar
+-- El id de venta que se genera para esta nueva venta
+CALL registrarVenta("001",@VentaId);
+
+DELIMITER $$ 
+DROP PROCEDURE IF EXISTS registrarVenta$$
+CREATE PROCEDURE registrarVenta(
+    IN inClienteId VARCHAR(10),
+    OUT outVentaId INT 
+) 
+BEGIN 
+    /* Se crea una nueva venta con total inicial de 0
+        para que luego el sistema calcule el total en
+        base a los detalles de la venta */
+    INSERT INTO venta(fecha,clienteId,total)
+    VALUES (NOW(), inClienteId, 0);
+
+    /* Se saca el valor del id para utilizarlo luego */
+    SET outVentaId = LAST_INSERT_ID();
+END $$
+DELIMITER ;
+
+```
+
 4. El vendedor selecciona las bicicletas que el cliente desea comprar y especifica la cantidad.
 
 ```sql
-
+CALL registrarDetalleVenta(@VentaId,1,10);
 ```
 
 5. El sistema calcula el total de la venta.
 
 ```sql
+    -- Obtener el precio unitario de la bicicleta --
+    SELECT precio INTO precioUnitario
+    FROM bicicleta
+    WHERE id = inBicicletaId;
+    
+    -- Calcular el total del detalle --
+    SET totalDetalle = precioUnitario * inCantidad;
 
+        -- Actualizar el total de la venta --
+    UPDATE venta
+    SET total = totalDetalle
+    WHERE id = inVentaId;
+    
 ```
 
 6. El vendedor confirma la venta.
 7. El sistema guarda la venta y actualiza el inventario de bicicletas.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS registrarDetalleVenta$$
+CREATE PROCEDURE RegistrarDetalleVenta(
+    IN inVentaId INT,
+    IN inBicicletaId INT,
+    IN inCantidad INT
+)
+BEGIN
+    DECLARE precioUnitario DECIMAL(10, 2);
+    DECLARE totalDetalle DECIMAL(10, 2);
+    
+    -- Obtener el precio unitario de la bicicleta --
+    SELECT precio INTO precioUnitario
+    FROM bicicleta
+    WHERE id = inBicicletaId;
+    
+    -- Calcular el total del detalle --
+    SET totalDetalle = precioUnitario * inCantidad;
+    
+    -- Insertar el detalle de la venta --
+    INSERT INTO detalleVenta (ventaId, bicicletaId, cantidad, precioUnitario)
+    VALUES (inVentaId, inBicicletaId, inCantidad, precioUnitario);
+    
+    -- Actualizar el total de la venta --
+    UPDATE venta
+    SET total = totalDetalle
+    WHERE id = inVentaId;
+    
+    -- Actualizar el inventario de bicicletas --
+    UPDATE bicicleta
+    SET stock = stock - inCantidad
+    WHERE id = inBicicletaId;
+END $$
+DELIMITER ;
 
 ```
 
@@ -96,45 +217,163 @@ Flujo Principal:
 electrónico, ciudad).
 
 ```sql
-
+CALL agregarProveedor("nombre","contacto","telefono","correo",1);
 ```
 
 4. El sistema valida y guarda la información del nuevo proveedor.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS agregarProveedor$$
+CREATE PROCEDURE agregarProveedor (
+    IN inNombreProveedor VARCHAR(50),
+    IN inNombreContacto VARCHAR(50),
+    IN inTelefono VARCHAR(20),
+    IN inCorreo VARCHAR(100),
+    IN inCiudadId INT
+)
+BEGIN
+    DECLARE proveedorExistente INT;
 
+    SELECT COUNT(p.id) INTO proveedorExistente
+    FROM proveedor p
+    WHERE p.nombre = inNombreProveedor
+    IF proveedorExistente = 0 THEN
+        INSERT INTO proveedor (nombre, contacto, telefono, correo, ciudadId)
+        VALUES (inNombreProveedor, inNombreContacto, inTelefono, inCorreo, inCiudadId);
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El proveedor ya existe con el mismo nombre, teléfono o correo electrónico';
+    END IF;
+
+END $$
+DELIMITER ;
 ```
 
 5. El administrador selecciona la opción para agregar un nuevo repuesto.
-
-```sql
-
-```
 
 6. El administrador ingresa los detalles del repuesto (nombre, descripción, precio, stock,
 proveedor).
 
 ```sql
-
+CALL agregarRepuesto("nombre","descripcion",20000,30,1);
 ```
 
 7. El sistema valida y guarda la información del nuevo repuesto.
 
 ```sql
+DROP PROCEDURE IF EXISTS agregarRepuesto$$
+CREATE PROCEDURE agregarRepuesto(
+IN inNombreRepuesto VARCHAR(20),
+IN inDescripcionRepuesto TEXT,
+IN inPrecio DOUBLE,
+IN inStock INT,
+IN inProveedorId INT
+)
+BEGIN
+-- Valida que el nombre del repuesto no esté vacío
+IF inNombreRepuesto IS NULL OR inNombreRepuesto = '' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El nombre del repuesto no puede estar vacío';
+END IF;
 
+-- Valida que el precio sea mayor que 0
+IF inPrecio <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El precio debe ser mayor que 0';
+END IF;
+
+-- Valida que el stock sea mayor o igual que 0
+IF inStock < 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El stock no puede ser negativo';
+END IF;
+
+-- Valida que el proveedor exista
+IF (SELECT COUNT(id) FROM proveedor WHERE id = inProveedorId) = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El proveedor no existe';
+END IF;
+
+-- Inserta el nuevo repuesto si todas las validaciones pasan
+INSERT INTO repuesto (nombre, descripcion, precio, stock, proveedorId)
+VALUES (inNombreRepuesto, inDescripcionRepuesto, inPrecio, inStock, inProveedorId);
+END $$
+
+DELIMITER ;
 ```
 
 8. El administrador selecciona un proveedor existente para actualizar.
 9. El administrador actualiza la información del proveedor.
 
 ```sql
-
+CALL actualizarProveedor(1,"nombre","contacto","telefono","correo",1);
 ```
 
 10. El sistema valida y guarda los cambios.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS actualizarProveedor$$
+CREATE PROCEDURE actualizarProveedor(
+    IN inId INT,
+    IN inNombre VARCHAR(20),
+    IN inContacto VARCHAR(20),
+    IN inTelefono VARCHAR(15),
+    IN inCorreo VARCHAR(50),
+    IN inCiudadId INT
+)
+BEGIN
+	-- Valida que el proveedor exista
+	IF (SELECT COUNT(id) FROM proveedor WHERE id = inId) = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'El proveedor no existe';
+	END IF;
 
+	-- Valida que el nombre del proveedor no esté vacío
+	IF inNombre IS NULL OR inNombre = '' THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'El nombre del proveedor no puede estar vacío';
+	END IF;
+
+	-- Valida que el nombre del contacto no esté vacío
+	IF inContacto IS NULL OR inContacto = '' THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'El nombre del contacto no puede estar vacío';
+	END IF;
+
+	-- Valida que el teléfono no esté vacío y sea único
+	IF inTelefono IS NULL OR inTelefono = '' THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'El teléfono no puede estar vacío';
+	ELSEIF (SELECT COUNT(id) FROM proveedor WHERE telefono = inTelefono AND id <> inId) > 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'El teléfono ya está en uso por otro proveedor';
+	END IF;
+
+	-- Valida que el correo electrónico no esté vacío y sea único
+	IF inCorreo IS NULL OR inCorreo = '' THEN
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El correo electrónico no puede estar vacío';
+	ELSEIF (SELECT COUNT(id) FROM proveedor WHERE correo = inCorreo AND id = inId) > 0 THEN
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El correo electrónico ya está en uso por otro proveedor';
+	END IF;
+
+	-- Valida que la ciudad exista
+	IF (SELECT COUNT(id) FROM ciudad WHERE id = inCiudadId) = 0 THEN
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La ciudad no existe';
+	END IF;
+
+	
+	UPDATE proveedor
+	SET nombre = inNombre,
+		contacto = inContacto,
+		telefono = inTelefono,
+		correo = inCorreo,
+		ciudadId = inCiudadId 
+	WHERE id = inId;
+END $$
+
+DELIMITER ;
 ```
 
 
@@ -142,37 +381,145 @@ proveedor).
 12. El administrador actualiza la información del repuesto.
 
 ```sql
-
+CALL actualizarRepuesto(1,"nombre","descripcion",10000,10,1);
 ```
 
 13. El sistema valida y guarda los cambios.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS actualizarRepuesto$$
+CREATE PROCEDURE actualizarRepuesto(
+    IN inId INT,
+    IN inNombre VARCHAR(20),
+    IN inDescripcion TEXT,
+    IN inPrecio DOUBLE,
+    IN inStock INT,
+    IN inProveedorId INT
+)
+BEGIN
+-- Valida que el repuesto exista
+IF (SELECT COUNT(id) FROM repuesto WHERE id = inId) = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El repuesto no existe';
+END IF;
 
+-- Valida que el nombre del repuesto no esté vacío
+IF inNombre IS NULL OR inNombre = '' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El nombre del repuesto no puede estar vacío';
+END IF;
+
+-- Valida que el precio sea mayor que 0
+IF inPrecio <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El precio debe ser mayor que 0';
+END IF;
+
+-- Valida que el stock no sea negativo
+IF inStocl < 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El stock no puede ser negativo';
+END IF;
+
+-- Valida que el proveedor exista
+IF (SELECT COUNT(id) FROM proveedor WHERE id = inProveedorId) = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El proveedor no existe';
+END IF;
+
+-- Actualiza el repuesto si todas las validaciones pasan
+UPDATE repuesto
+SET nombre = inNombre,
+    descripcion = inDescripcion,
+    precio = inPrecio,
+    stock = inStock,
+    proveedorId = inProveedorId
+WHERE id = inId;
+END $$
+
+DELIMITER ;
 ```
 
 
 14. El administrador selecciona un proveedor para eliminar.
 
 ```sql
-
+CALL eliminarProveedor(1);
 ```
 
 15. El sistema elimina el proveedor seleccionado.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS eliminarProveedor$$
+CREATE PROCEDURE eliminarProveedor(
+    IN inId INT
+)
+BEGIN
+    DECLARE proveedorExistente INT;
+
+    -- Valida que el proveedor exista
+    SELECT COUNT(id) INTO proveedorExistente
+    FROM proveedor
+    WHERE id = inId;
+
+    IF proveedorExistente = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El proveedor no existe';
+    END IF;
+
+    -- Elimina repuestos asociados al proveedor
+    DELETE FROM repuesto WHERE proveedorId = inId;
+
+    -- Elimina compras asociadas al proveedor
+    DELETE FROM compra WHERE proveedorId = inId;
+
+    -- Elimina el proveedor
+    DELETE FROM proveedor WHERE id = inId;
+    END $$
+
+DELIMITER ;
 
 ```
 
 16. El administrador selecciona un repuesto para eliminar.
 
 ```sql
-
+CALL eliminarRepuesto(1);
 ```
 
 17. El sistema elimina el repuesto seleccionado.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS eliminarRepuesto$$ 
+CREATE PROCEDURE eliminarRepuesto(
+    IN inId INT
+)
+BEGIN
+    DECLARE repuestoExistente INT;
+
+    -- Valida que el repuesto exista
+    SELECT COUNT(id) INTO repuestoExistente
+    FROM repuesto
+    WHERE id = inId;
+
+    IF repuestoExistente = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El repuesto no existe';
+    END IF;
+
+    -- Elimina registros relacionados en detalle_venta
+    DELETE FROM detalleVenta WHERE repuestoId = inId;
+
+    -- Elimina registros relacionados en detalle_compra
+    DELETE FROM detalleCompra WHERE repuestoId = inId;
+
+    -- Elimina el repuesto
+    DELETE FROM repuesto WHERE id = inId;
+END $$
+DELIMITER ;
 
 ```
 
@@ -191,26 +538,62 @@ Flujo Principal:
 3. El usuario selecciona el cliente del cual desea ver el historial.
 
 ```sql
-
+CALL mostrarHistorialVentas("clienteId");
 ```
 
 4. El sistema muestra todas las ventas realizadas por el cliente seleccionado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS mostrarHistorialVentas$$
+CREATE PROCEDURE mostrarHistorialVentas(
+    IN inClienteID INT
+)
+BEGIN
+    /* 
+        Se hace uso de una consulta que devuelve 
+        el id, la fecha y el total de todas 
+        las ventas cuyo cliente coincida con 
+        el id del cliente que recibe el procedure
+    */
+    SELECT v.id AS ventaID, v.fecha, v.total
+    FROM venta v
+    WHERE v.clienteId = inClienteId
+    ORDER BY v.fecha DESC;
+END $$
+DELIMITER ;
 ```
 
 5. El usuario selecciona una venta específica para ver los detalles.
 
 ```sql
-
+CALL consultarDetallesVenta(1);
 ```
 
 6. El sistema muestra los detalles de la venta seleccionada (bicicletas compradas, cantidad,
 precio).
 
 ```sql
+DELIMITER $$ 
+DROP PROCEDURE IF EXISTS consultarDetallesVenta$$
+CREATE PROCEDURE consultarDetallesVenta(
+    IN inVentaId INT
+)
+BEGIN
+    /* 
+        Se hace uso de una consulta para 
+        sacar los detalles de la venta usando el
+        id de venta que recibe el procedure
 
+        Además se hace uso del join para mostrar
+        detalles de la bicicleta que se vende
+    */
+    SELECT dv.bicicletaId, b.modelo, b.marca, dv.cantidad, dv.precioUnitario
+    FROM detalleVenta dv
+    JOIN bicicleta b ON dv.bicicletaId = b.id
+    WHERE dv.ventaId = inVentaId;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 5: Gestión de Compras de Repuestos
@@ -228,12 +611,29 @@ Flujo Principal:
 4. El administrador ingresa los detalles de la compra (fecha, total).
 
 ```sql
-
+CALL registrarCompra("fecha",1,20000,@compraId);
 ```
 
 5. El sistema guarda la compra y genera un identificador único.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS registrarCompra$$
+CREATE PROCEDURE registrarCompra(
+    IN inFecha DATE,
+    IN inProveedorId INT,
+    IN inTotal DECIMAL(10, 2),
+    OUT outCompraId INT
+)
+BEGIN
+    -- Crear una nueva compra --
+    INSERT INTO compra (fecha, proveedorId, total)
+    VALUES (inFecha, inProveedorId, inTotal);
+
+    -- Obtener el ID de la nueva compra creada --
+    SET outCompraId = LAST_INSERT_ID();
+END $$
+DELIMITER ;
 
 ```
 
@@ -241,13 +641,37 @@ Flujo Principal:
 unitario.
 
 ```sql
-
+CALL registrarDetalleCompra(@compraId,2,10,20000);
 ```
 
 7. El sistema guarda los detalles de la compra y actualiza el stock de los repuestos comprados.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS registrarDetalleCompra$$
+CREATE PROCEDURE registrarDetalleCompra(
+    IN inCompraId INT,
+    IN inRepuestoId INT,
+    IN inCantidad INT,
+    IN inPrecioUnitario DECIMAL(10, 2)
+)
+BEGIN
+    DECLARE totalDetalle DECIMAL(10, 2);
 
+    SET totalDetalle = inPrecioUnitario * inCantidad;
+
+    INSERT INTO detalleCompra (compraId, repuestoId, cantidad, precioUnitario)
+    VALUES (inCompraId, inRepuestoId, inCantidad, inPrecioUnitario);
+
+    UPDATE repuesto
+    SET stock = stock + inCantidad
+    WHERE id = inRepuestoId;
+
+    UPDATE compra
+    SET total = total + totalDetalle
+    WHERE id = inCompraId;
+END $$
+DELIMITER ;
 ```
 
 # Casos de Uso con Subconsultas
@@ -380,13 +804,22 @@ Flujo Principal:
 2. El administrador selecciona la opción para consultar las ventas por ciudad.
 
 ```sql
-
+SELECT c.nombre, SUM(v.total) AS ventasTotales
+FROM ciudad c
+JOIN cliente cl ON c.id = cl.ciudadId
+JOIN venta v ON cl.id = v.clienteId
+GROUP BY c.nombre, cl.ciudadId;
 ```
 
 3. El sistema muestra una lista de ciudades con el total de ventas realizadas en cada una.
 
 ```sql
-
++--------+---------------+
+| nombre | ventasTotales |
++--------+---------------+
+| Bogotá |       1800.00 |
+| Madrid |        800.00 |
++--------+---------------+
 ```
 
 ## Caso de Uso 12: Consulta de Proveedores por País
@@ -401,13 +834,21 @@ Flujo Principal:
 2. El administrador selecciona la opción para consultar los proveedores por país.
 
 ```sql
-
+SELECT p.nombre AS proveedor, pa.nombre AS pais
+FROM proveedor p
+JOIN ciudad c ON p.ciudadId = c.id
+JOIN pais pa ON c.paisId = pa.id;
 ```
 
 3. El sistema muestra una lista de países con los proveedores en cada país.
 
 ```sql
-
++------------------------+----------+
+| proveedor              | pais     |
++------------------------+----------+
+| Proveedores Bicis S.A. | Colombia |
+| Accesorios Bike Ltda.  | España   |
++------------------------+----------+
 ```
 
 ## Caso de Uso 13: Compras de Repuestos por Proveedor
@@ -423,14 +864,23 @@ Flujo Principal:
 proveedor.
 
 ```sql
-
+SELECT p.nombre, SUM(dc.cantidad) AS totalComprados
+FROM detalleCompra dc
+JOIN compra c ON  c.id = dc.compraId
+JOIN proveedor p ON p.id = c.proveedorId
+GROUP BY c.proveedorId;
 ```
 
 3. El sistema muestra una lista de proveedores con el total de repuestos comprados a cada
 uno.
 
 ```sql
-
++------------------------+----------------+
+| nombre                 | totalComprados |
++------------------------+----------------+
+| Proveedores Bicis S.A. |             20 |
+| Accesorios Bike Ltda.  |            100 |
++------------------------+----------------+
 ```
 
 ## Caso de Uso 14: Clientes con Ventas en un Rango de Fechas
@@ -447,6 +897,10 @@ Flujo Principal:
 3. El usuario ingresa las fechas de inicio y fin del rango.
 
 ```sql
+SELECT DISTINCT c.nombre 
+FROM  cliente c
+JOIN venta v ON c.id = v.clienteId
+WHERE v.fecha BETWEEN '2024-01-01' AND '2024-12-31';
 
 ```
 
@@ -454,7 +908,12 @@ Flujo Principal:
 fechas especificado.
 
 ```sql
-
++------------+
+| nombre     |
++------------+
+| Juan Pérez |
+| Ana Gómez  |
++------------+
 ```
 
 # Casos de Uso para Implementar Procedimientos Almacenados
@@ -471,7 +930,7 @@ Flujo Principal:
 2. El vendedor registra una venta de bicicletas.
 
 ```sql
-
+CALL registrarVenta(1,@ventaId);
 ```
 
 3. El sistema llama a un procedimiento almacenado para actualizar el inventario de las
@@ -479,6 +938,19 @@ bicicletas vendidas.
 4. El procedimiento almacenado actualiza el stock de cada bicicleta.
 
 ```sql
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS actualizarStockBicicleta
+CREATE PROCEDURE actualizarStockBicicleta(
+    IN inVentaId INT
+)
+BEGIN
+    UPDATE bicicleta b
+    JOIN detalleVenta dv ON b.id = dv.bicicletaId
+    SET b.stock = b.stock - dv.cantidad
+    WHERE dv.ventaId = inVentaId;
+END $$
+DELIMITER ;
 
 ```
 
@@ -494,14 +966,53 @@ Flujo Principal:
 2. El vendedor registra una nueva venta.
 
 ```sql
-
+CALL registrarVentaConDetalles(1,1,10,@ventaId);
 ```
 
 3. El sistema llama a un procedimiento almacenado para registrar la venta y sus detalles.
 4. El procedimiento almacenado inserta la venta y sus detalles en las tablas correspondientes.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS registrarVentaConDetalles$$
+CREATE PROCEDURE registrarVentaConDetalles(
+    IN inClienteId VARCHAR(10),
+    IN inBicicletaId INT,
+    IN inCantidad INT,
+    OUT outVentaId INT 
+)
+BEGIN
+    DECLARE precioUnitario DECIMAL(10, 2);
+    DECLARE totalDetalle DECIMAL(10, 2);
+    
+    INSERT INTO venta(fecha, clienteId, total)
+    VALUES (NOW(), inClienteId, 0);
 
+    SET outVentaId = LAST_INSERT_ID();
+    
+    SELECT precio INTO precioUnitario
+    FROM bicicleta
+    WHERE id = inBicicletaId;
+
+    SET totalDetalle = precioUnitario * inCantidad;
+
+    INSERT INTO detalleVenta (ventaId, bicicletaId, cantidad, precioUnitario)
+    VALUES (outVentaId, inBicicletaId, inCantidad, precioUnitario);
+
+    UPDATE venta
+    SET total = totalDetalle
+    WHERE id = outVentaId;
+
+    UPDATE bicicleta
+    SET stock = stock - inCantidad
+    WHERE id = inBicicletaId;
+
+    IF (SELECT stock FROM bicicleta WHERE id = inBicicletaId) < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock insuficiente para la venta';
+    END IF;
+END $$
+
+DELIMITER ;
 ```
 
 ## Caso de Uso 3: Generación de Reporte de Ventas por Cliente
@@ -516,7 +1027,7 @@ Flujo Principal:
 2. El administrador selecciona un cliente para generar un reporte de ventas.
 
 ```sql
-
+CALL generarReporteVentasPorCliente(1,1);
 ```
 
 3. El sistema llama a un procedimiento almacenado para generar el reporte.
@@ -524,7 +1035,28 @@ Flujo Principal:
 cliente.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS generarReporteVentasPorCliente$$
+CREATE PROCEDURE GenerarReporteVentasPorCliente(
+    IN inClienteId INT,
+    IN inVentaId INT
+)
+BEGIN
+    -- Seleccionar todas las ventas realizadas por el cliente --
+    SELECT v.id AS ventaId, v.fecha, v.total
+    FROM venta v
+    WHERE v.clienteId = inClienteId
+    ORDER BY v.fecha DESC;
 
+    -- Seleccionar los detalles de la venta específica si se proporciona el id de venta --
+    IF inVentaId IS NOT NULL THEN
+       SELECT dv.bicicletaId, b.modelo, b.marca, dv.cantidad, dv.precioUnitario
+        FROM detalleVenta dv
+        JOIN bicicleta b ON dv.bicicletaId = b.id
+        WHERE dv.ventaId = inVentaId;
+    END IF;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 4: Registro de Compra de Repuestos
@@ -538,7 +1070,7 @@ Flujo Principal:
 2. El administrador registra una nueva compra.
 
 ```sql
-
+CALL registrarCompra("fecha",1,10000,@compraId);
 ```
 
 3. El sistema llama a un procedimiento almacenado para registrar la compra y sus detalles.
@@ -546,7 +1078,23 @@ Flujo Principal:
 y actualiza el stock de repuestos.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS registrarCompra$$
+CREATE PROCEDURE registrarCompra(
+    IN inFecha DATE,
+    IN inProveedorId INT,
+    IN inTotal DECIMAL(10, 2),
+    OUT outCompraId INT
+)
+BEGIN
+    -- Crear una nueva compra --
+    INSERT INTO compra (fecha, proveedorId, total)
+    VALUES (inFecha, inProveedorId, inTotal);
 
+    -- Obtener el ID de la nueva compra creada --
+    SET outCompraId = LAST_INSERT_ID();
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 5: Generación de Reporte de Inventario
@@ -561,7 +1109,7 @@ Flujo Principal:
 2. El administrador solicita un reporte de inventario.
 
 ```sql
-
+CALL reporteInventario()
 ```
 
 3. El sistema llama a un procedimiento almacenado para generar el reporte.
@@ -569,7 +1117,32 @@ Flujo Principal:
 4. El procedimiento almacenado obtiene la información del inventario de bicicletas y repuestos.
 
 ```sql
+DELIMITER $$ 
+DROP PROCEDURE IF EXISTS reporteInventario$$
+CREATE PROCEDURE reporteInventario()
+BEGIN
+    -- Mostrar una tabla que devuelve todo el inventario de bicicleta --
+    SELECT 
+        b.id,
+        b.modelo,
+        b.marca,
+        b.precio,
+        b.stock
+    FROM bicicleta b
+    ORDER BY b.id DESC;
 
+    -- Mostrar otra tabla que devuelve todo el inventario de repuestos --
+    SELECT 
+        r.id,
+        r.nombre,
+        r.descripcion,
+        r.precio,
+        r.stock,
+        r.proveedorId AS id_proveedor
+    FROM repuesto r
+    ORDER BY r.id DESC;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 6: Actualización Masiva de Precios
@@ -585,7 +1158,7 @@ Flujo Principal:
 3. El administrador ingresa la marca y el porcentaje de incremento.
 
 ```sql
-
+CALL actualizarPreciosPorMarca("marca",20);
 ```
 
 4. El sistema llama a un procedimiento almacenado para actualizar los precios.
@@ -593,7 +1166,19 @@ Flujo Principal:
 especificada.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS actualizarPreciosPorMarca$$
+CREATE PROCEDURE actualizarPreciosPorMarca(
+    IN inMarca VARCHAR(255),
+    IN inPorcentaje DECIMAL(5, 2)
+)
+BEGIN
+    -- Actualizar los precios de todas las bicicletas de la marca especificada --
+    UPDATE bicicleta
+    SET precio = precio * (1 + inPorcentaje / 100)
+    WHERE marca = inMarca;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 7: Generación de Reporte de Clientes por Ciudad
@@ -608,7 +1193,7 @@ Flujo Principal:
 2. El administrador selecciona la opción para generar un reporte de clientes por ciudad.
 
 ```sql
-
+CALL reporteClienteCiudad();
 ```
 
 3. El sistema llama a un procedimiento almacenado para generar el reporte.
@@ -616,6 +1201,26 @@ Flujo Principal:
 4. El procedimiento almacenado obtiene la información de los clientes agrupados por ciudad.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS reporteClienteCiudad$$
+CREATE PROCEDURE reporteClienteCiudad()
+BEGIN
+
+    SELECT 
+        ci.nombre AS ciudad,
+        c.id AS clienteId,
+        c.nombre AS cliente,
+        c.correo AS correoCliente,
+        c.telefono AS telefonoCliente
+    FROM cliente c
+    JOIN ciudad ci 
+    ON 
+        ci.id = c.ciudadId
+    ORDER BY
+        ci.nombre,
+        c.nombre
+END $$
+DELIMITER ;
 
 ```
 
@@ -629,16 +1234,34 @@ Flujo Principal:
 
 1. El vendedor ingresa al sistema.
 2. El vendedor selecciona una bicicleta para vender.
+3. El sistema llama a un procedimiento almacenado para verificar el stock.
 
 ```sql
-
+CALL verificarStockBicicleta(1,20);
 ```
 
-3. El sistema llama a un procedimiento almacenado para verificar el stock.
 4. El procedimiento almacenado devuelve un mensaje indicando si hay suficiente stock para
 realizar la venta.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS verificarStockBicicleta$$
+CREATE PROCEDURE verificarStockBicicleta(
+    IN inBicicletaId INT,
+    IN inCantidad INT
+)
+BEGIN 
+    DECLARE stockActual INT;
+
+    SELECT b.stock INTO stockActual
+    FROM bicicleta b
+    WHERE b.id = inBicicletaId;
+    
+    IF stockActual < inCantidad THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock insuficiente para esta bicicleta';
+    END IF;
+END $$
+DELIMITER ;
 
 ```
 
@@ -723,14 +1346,25 @@ Flujo Principal:
 3. El administrador ingresa el mes y el año.
 
 ```sql
-
+CALL ventasPorMes(7;
 ```
 
 4. El sistema llama a un procedimiento almacenado para calcular el total de ventas.
 5. El procedimiento almacenado devuelve el total de ventas del mes especificado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS ventasPorMes$$
+CREATE PROCEDURE ventasPorMes(
+    in inMes INT
+)
+BEGIN
+    SELECT SUM(total) AS totalVentas
+    FROM venta
+    WHERE MONTH(fecha) = inMes
+    GROUP BY MONTH(fecha);
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 2: Calcular el Promedio de Ventas por Cliente
@@ -746,14 +1380,31 @@ Flujo Principal:
 3. El administrador ingresa el ID del cliente.
 
 ```sql
-
+CALL promedioVentasPorCliente("clienteId");
 ```
 
 4. El sistema llama a un procedimiento almacenado para calcular el promedio de ventas.
 5. El procedimiento almacenado devuelve el promedio de ventas del cliente especificado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS promedioVentasPorCliente$$
+CREATE PROCEDURE promedioVentasPorCliente(
+    IN inClienteId VARCHAR(10)
+)
+BEGIN
+    SELECT 
+        c.nombre, 
+        TRUNCATE((AVG(v.total)),2) AS promedioVentas
+    FROM 
+        venta v
+    JOIN cliente c ON v.clienteId = c.id
+    WHERE 
+        c.id = inClienteId
+    GROUP BY 
+        c.id, c.nombre;
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 3: Contar el Número de Ventas Realizadas en un Rango de
@@ -770,7 +1421,7 @@ fechas.
 3. El administrador ingresa las fechas de inicio y fin.
 
 ```sql
-
+CALL ventasEnRangoFechas("fecha1","fecha2";
 ```
 
 4. El sistema llama a un procedimiento almacenado para contar las ventas.
@@ -778,6 +1429,18 @@ fechas.
 especificado.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS ventasEnRangoFechas $$
+CREATE PROCEDURE ventasEnRangoFechas(
+    IN inFechaInicio DATE, 
+    IN inFechaFin DATE
+)
+BEGIN
+    SELECT COUNT(v.id) AS totalVentas
+    FROM venta v
+    WHERE v.fecha BETWEEN inFechaInicio AND inFechaFin;
+END$$
+DELIMITER ;
 
 ```
 
@@ -795,7 +1458,7 @@ proveedor.
 3. El administrador ingresa el ID del proveedor.
 
 ```sql
-
+CALL totalRepuestosPorProveedor(1);
 ```
 
 4. El sistema llama a un procedimiento almacenado para calcular el total de repuestos.
@@ -803,7 +1466,22 @@ proveedor.
 especificado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS totalRepuestosPorProveedor$$
+CREATE PROCEDURE totalRepuestosPorProveedor(
+    IN inProveedorID INT
+)
+BEGIN
+    SELECT 
+        p.nombre, 
+        SUM(dc.cantidad) AS totalRepuestos
+    FROM detalleCompra dc
+    JOIN compra c ON dc.compraId = c.id
+    JOIN proveedor p ON c.proveedorId = p.id
+    WHERE p.id = inProveedorId
+    GROUP BY c.proveedorId, p.nombre;
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 5: Calcular el Ingreso Total por Año
@@ -819,14 +1497,26 @@ Flujo Principal:
 3. El administrador ingresa el año.
 
 ```sql
-
+CALL ingresoTotalPorAño(2024);
 ```
 
 4. El sistema llama a un procedimiento almacenado para calcular el ingreso total.
 5. El procedimiento almacenado devuelve el ingreso total del año especificado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS ingresoTotalPorAño $$
+CREATE PROCEDURE ingresoTotalPorAño(
+    IN inAño INT
+)
+BEGIN
+    SELECT 
+        SUM(v.total) AS ingresoTotal
+    FROM venta v
+    WHERE 
+        YEAR(v.fecha) = inAño;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 6: Calcular el Número de Clientes Activos en un Mes
@@ -842,7 +1532,7 @@ Flujo Principal:
 3. El administrador ingresa el mes y el año.
 
 ```sql
-
+CALL clientesActivosEnMes(7,2024);
 ```
 
 4. El sistema llama a un procedimiento almacenado para contar los clientes activos.
@@ -850,7 +1540,18 @@ Flujo Principal:
 el mes especificado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS clientesActivosEnMes $$
+CREATE PROCEDURE clientesActivosEnMes(
+    IN inMes INT, 
+    IN inAño INT)
+BEGIN
+    SELECT 
+        COUNT(DISTINCT v.clienteId) AS clientesActivos
+    FROM venta v
+    WHERE MONTH(v.fecha) = inMes AND YEAR(v.fecha) = inAño;
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 7: Calcular el Promedio de Compras por Proveedor
@@ -866,14 +1567,28 @@ Flujo Principal:
 3. El administrador ingresa el ID del proveedor.
 
 ```sql
-
+CALL promedioComprasPorProveedor(1);
 ```
 
 4. El sistema llama a un procedimiento almacenado para calcular el promedio de compras.
 5. El procedimiento almacenado devuelve el promedio de compras del proveedor especificado.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS promedioComprasPorProveedor $$
+CREATE PROCEDURE promedioComprasPorProveedor(
+    IN inProveedorId INT
+)
+BEGIN
+    SELECT 
+        p.nombre, 
+        TRUNCATE((AVG(c.total)),2) AS promedioCompras
+    FROM compra c
+    JOIN proveedor p ON c.proveedorId = p.id
+    WHERE p.id = inProveedorId
+    GROUP BY c.proveedorId, p.nombre;
+END $$ 
+DELIMITER ;
 ```
 
 ## Caso de Uso 8: Calcular el Total de Ventas por Marca
@@ -888,7 +1603,7 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el total de ventas por marca.
 
 ```sql
-
+CALL ventasPorMarca()
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el total de ventas por marca.
@@ -896,6 +1611,18 @@ Flujo Principal:
 
 ```sql
 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS ventasPorMarca
+CREATE PROCEDURE ventasPorMarca()
+BEGIN
+    SELECT 
+        b.marca, 
+        SUM(dv.cantidad * b.precioUnitario) AS total_marca
+    FROM detalleVenta dv
+    JOIN bicicleta b ON dv.bicicletaId = b.id
+    GROUP BY b.marca;
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 9: Calcular el Promedio de Precios de Bicicletas por Marca
@@ -910,14 +1637,24 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el promedio de precios por marca.
 
 ```sql
-
+CALL promedioPorMarca();
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el promedio de precios.
 4. El procedimiento almacenado devuelve el promedio de precios agrupadas por marca.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS promedioPorMarca$$
+CREATE PROCEDURE promedioPorMarca()
+BEGIN 
+    SELECT 
+        b.marca, 
+        TRUNCATE((AVG(b.precio)),2) AS promedio
+    FROM bicicleta b
+    GROUP BY b.marca;
+END$$
+DELIMITER ;
 ```
 
 ## Caso de Uso 10: Contar el Número de Repuestos por Proveedor
@@ -932,7 +1669,7 @@ Flujo Principal:
 2. El administrador selecciona la opción para contar el número de repuestos por proveedor.
 
 ```sql
-
+CALL totalRepuestos();
 ```
 
 3. El sistema llama a un procedimiento almacenado para contar los repuestos.
@@ -940,7 +1677,19 @@ Flujo Principal:
 proveedor.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS totalRepuestos$$
+CREATE PROCEDURE totalRepuestos()
+BEGIN
+    SELECT 
+        p.nombre, 
+        SUM(dc.cantidad) AS totalRepuestos
+    FROM detalleCompra dc
+    JOIN compra c ON dc.compraId = c.id
+    JOIN proveedor p ON c.proveedorId = p.id
+    GROUP BY c.proveedorId, p.nombre;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 11: Calcular el Total de Ingresos por Cliente
@@ -955,14 +1704,26 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el total de ingresos por cliente.
 
 ```sql
-
+CALL totalIngresosPorCliente();
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el total de ingresos.
 4. El procedimiento almacenado devuelve el total de ingresos generados por cada cliente.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS totalIngresosPorCliente$$
+CREATE PROCEDURE totalIngresosPorCliente()
+BEGIN
+    SELECT 
+        c.id AS clienteId, 
+        c.nombre, 
+        SUM(v.total) AS ingresoTotal
+    FROM cliente c
+    JOIN venta v ON c.id = v.clienteId
+    GROUP BY c.id, c.nombre
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 12: Calcular el Promedio de Compras Mensuales
@@ -977,7 +1738,7 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el promedio de compras mensuales.
 
 ```sql
-
+CALL promedioComprasMensuales();
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el promedio de compras
@@ -985,7 +1746,18 @@ mensuales.
 4. El procedimiento almacenado devuelve el promedio de compras realizadas mensualmente.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS promedioComprasMensuales$$
+CREATE PROCEDURE promedioComprasMensuales()
+BEGIN
+    SELECT 
+        YEAR(v.fecha) AS año, 
+        MONTH(v.fecha) AS mes, 
+        TRUNCATE((AVG(v.total)),2) AS promedio
+    FROM venta v
+    GROUP BY YEAR(v.fecha), MONTH(v.fecha);
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 13: Calcular el Total de Ventas por Día de la Semana
@@ -1000,14 +1772,24 @@ Flujo Principal:
 2. El administrador selecciona la opción para calcular el total de ventas por día de la semana.
 
 ```sql
-
+CALL totalVentasPorDiaSemana();
 ```
 
 3. El sistema llama a un procedimiento almacenado para calcular el total de ventas.
 4. El procedimiento almacenado devuelve el total de ventas agrupadas por día de la semana.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS totalVentasPorDiaSemana$$
+CREATE PROCEDURE totalVentasPorDiaSemana()
+BEGIN
+    SELECT 
+        DAYNAME(v.fecha) AS dia, 
+        SUM(v.total) AS totalVentas
+    FROM venta v
+    GROUP BY DAYNAME(v.fecha);
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 14: Contar el Número de Ventas por Categoría de Bicicleta
