@@ -59,6 +59,16 @@ CREATE TABLE detalleVenta(
     CONSTRAINT Fk_detalleVentaBicicleta FOREIGN KEY (bicicletaId) REFERENCES bicicleta(id)
 );
 
+CREATE TABLE devolucione (
+    ind INT AUTO_INCREMENT PRIMARY KEY,
+    clienteId INT,
+    bicicletaId INT,
+    fecha DATE,
+    cantidad INT,
+    FOREIGN KEY (clienteId) REFERENCES cliente(id),
+    FOREIGN KEY (bicicletaId) REFERENCES bicicleta(id)
+);
+
 CREATE TABLE proveedor(
 	id INT AUTO_INCREMENT,
 	nombre VARCHAR(50) NOT NULL,
