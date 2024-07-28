@@ -822,6 +822,14 @@ Flujo Principal:
 2. El administrador selecciona la opción para consultar los repuestos con menor rotación.
 
 ```sql
+SELECT r.nombre, sub.cantidadVendida
+FROM repuesto r
+JOIN (
+   SELECT dv.repuestoId, SUM(dv.cantidad) AS cantidadVendida
+   FROM detalleCompra dv
+   GROUP BY dv.repuestoId
+) sub ON sub.repuestoId = r.id 
+ORDER BY sub.cantidadVendida DESC;
 
 ```
 
@@ -829,7 +837,12 @@ Flujo Principal:
 mayor.
 
 ```sql
-
++-------------------+-----------------+
+| nombre            | cantidadVendida |
++-------------------+-----------------+
+| Cinta de Manillar |             100 |
+| Frenos Shimano    |              20 |
++-------------------+-----------------+
 ```
 
 ## Caso de Uso 10: Ciudades con Más Ventas Realizadas
