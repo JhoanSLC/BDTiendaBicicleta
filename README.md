@@ -857,13 +857,36 @@ Flujo Principal:
 2. El administrador selecciona la opción para consultar las ciudades con más ventas realizadas.
 
 ```sql
+SELECT 
+    ci.nombre,
+    sub.cantidadVentas
+FROM 
+    ciudad ci
+JOIN 
+    (SELECT 
+        cl.ciudadId,
+        COUNT(v.id) AS cantidadVentas
+     FROM 
+        venta v
+     JOIN 
+        cliente cl ON v.clienteId = cl.id
+     GROUP BY 
+        cl.ciudadId
+    ) sub ON ci.id = sub.ciudadId
+ORDER BY 
+    sub.cantidadVentas DESC;
 
 ```
 
 3. El sistema muestra una lista de ciudades ordenadas por la cantidad de ventas realizadas.
 
 ```sql
-
++--------+----------------+
+| nombre | cantidadVentas |
++--------+----------------+
+| Bogotá |              1 |
+| Madrid |              1 |
++--------+----------------+
 ```
 
 # Casos de Uso con Joins
