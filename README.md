@@ -1849,7 +1849,7 @@ CALL totalVentasAñoMes(7,2024);
 
 3. El sistema llama a un procedimiento almacenado para calcular el total de ventas.
 
-````sql
+```sql
 DELIMITER $$
 CREATE PROCEDURE totalVentasAñoMes(
     IN inMes INT,
@@ -1867,7 +1867,6 @@ DELIMITER ;
 4. El procedimiento almacenado devuelve el total de ventas agrupadas por año y mes.
 
 ```sql
-DELIMITER $$
 +---------------------+
 | totalVentas_año_mes |
 +---------------------+
