@@ -28,3 +28,5 @@ SELECT
         )
     ORDER BY 
         total_vendido DESC;
+
+-- TESTEADO --
