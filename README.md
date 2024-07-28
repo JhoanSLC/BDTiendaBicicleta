@@ -689,14 +689,48 @@ Flujo Principal:
 2. El usuario selecciona la opción para consultar las bicicletas más vendidas por marca.
 
 ```sql
-
+SELECT 
+        b.marca, 
+        b.modelo, 
+        SUM(dv.cantidad) AS total_vendido
+    FROM 
+        bicicleta b
+    JOIN 
+        detalleVenta dv ON b.Id = dv.bicicletaId
+    GROUP BY 
+        b.marca, b.modelo
+    HAVING 
+        SUM(dv.cantidad) = (
+            SELECT 
+                MAX(total_vendido)
+            FROM (
+                SELECT 
+                    b2.marca, 
+                    b2.modelo, 
+                    SUM(dv2.cantidad) AS total_vendido
+                FROM 
+                    bicicleta b2
+                JOIN 
+                    detalleVenta dv2 ON b2.Id = dv2.bicicletaId
+                GROUP BY 
+                    b2.marca, b2.modelo
+            ) AS subquery
+            WHERE subquery.marca = b.marca
+        )
+    ORDER BY 
+        total_vendido DESC;
 ```
 
 3. El sistema muestra una lista de marcas y el modelo de bicicleta más vendido para cada
 marca.
 
 ```sql
-
++-------------+--------------+---------------+
+| marca       | modelo       | total_vendido |
++-------------+--------------+---------------+
+| Specialized | Mountain X   |             1 |
+| Trek        | Roadster Pro |             1 |
++-------------+--------------+---------------+
 ```
 
 ## Caso de Uso 7: Clientes con Mayor Gasto en un Año Específico
@@ -713,15 +747,32 @@ específico.
 3. El administrador ingresa el año deseado.
 
 ```sql
-
+ SELECT 
+        c.id AS ClienteID, 
+        c.nombre AS nombre, 
+        SUM(v.Total) AS TotalGastado
+    FROM 
+        cliente c
+    JOIN 
+        venta v ON c.id = v.clienteId
+    WHERE 
+        YEAR(v.fecha) = 2024
+    GROUP BY 
+        c.id, c.nombre
+    ORDER BY 
+        TotalGastado DESC;
 ```
-
 
 4. El sistema muestra una lista de los clientes que han gastado más en ese año, ordenados por
 total gastado.
 
 ```sql
-
++-----------+------------+--------------+
+| ClienteID | nombre     | TotalGastado |
++-----------+------------+--------------+
+| 001       | Juan Pérez |      1800.00 |
+| 002       | Ana Gómez  |       800.00 |
++-----------+------------+--------------+
 ```
 
 ## Caso de Uso 8: Proveedores con Más Compras en el Último Mes
@@ -737,14 +788,26 @@ Flujo Principal:
 último mes.
 
 ```sql
-
+SELECT p.nombre, sub.comprasProveedor
+FROM proveedor p
+JOIN (
+    SELECT proveedorId, COUNT(c.id) AS comprasProveedor
+    FROM compra c
+    WHERE MONTH(c.fecha) = 7
+    GROUP BY c.proveedorId
+) sub ON sub.proveedorId = p.id;
 ```
 
 3. El sistema muestra una lista de proveedores ordenados por el número de compras recibidas
 en el último mes.
 
 ```sql
-
++------------------------+------------------+
+| nombre                 | comprasProveedor |
++------------------------+------------------+
+| Proveedores Bicis S.A. |                1 |
+| Accesorios Bike Ltda.  |                1 |
++------------------------+------------------+
 ```
 
 ## Caso de Uso 9: Repuestos con Menor Rotación en el Inventario
