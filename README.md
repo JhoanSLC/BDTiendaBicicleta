@@ -1426,7 +1426,7 @@ Flujo Principal:
 2. El administrador selecciona un proveedor para generar un reporte de compras.
 
 ```sql
-
+CALL reporteComprasPorProveedor(1);
 ```
 
 3. El sistema llama a un procedimiento almacenado para generar el reporte.
@@ -1434,7 +1434,33 @@ Flujo Principal:
 proveedor.
 
 ```sql
-
+DELIMITER $$
+DROP PROCEDURE IF EXISTS reporteComprasPorProveedor$$
+CREATE PROCEDURE reporteComprasPorProveedor(
+    IN inProveedorId INT
+)
+BEGIN
+    
+    SELECT 
+        c.id AS CompraID, 
+        c.fecha, 
+        c.total, 
+        dc.repuestoID, 
+        r.nombre AS RepuestoNombre, 
+        dc.cantidad, 
+        dc.precioUnitario
+    FROM 
+        compra c
+    JOIN 
+        detalleCompra dc ON c.id = dc.compraId
+    JOIN 
+        Repuestos r ON dc.RepuestoID = r.ID
+    WHERE 
+        c.proveedorId = inProveedorId
+    ORDER BY 
+        c.fecha DESC;
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 11: Calculadora de Descuentos en Ventas
