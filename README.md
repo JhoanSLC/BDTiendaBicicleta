@@ -1376,14 +1376,43 @@ Flujo Principal:
 2. El vendedor registra una devolución de bicicleta.
 
 ```sql
-
+CALL registrarDevolucion("clienteId",1,1);
 ```
 
 3. El sistema llama a un procedimiento almacenado para registrar la devolución.
 4. El procedimiento almacenado inserta la devolución y actualiza el stock de la bicicleta.
 
 ```sql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS actualizarStockBicicleta$$
+CREATE PROCEDURE actualizarStockBicicleta(
+    IN inBicicletaId INT,
+    IN inCantidad INT
+)
+BEGIN
+    UPDATE bicicleta
+    SET stock = stock + inCantidad
+    WHERE id = inBicicletaId;
+END $$
 
+DELIMITER ;
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS registrarDevolucion$$
+CREATE PROCEDURE registrarDevolucion(
+    IN inClienteId INT,
+    IN inBicicletaId INT,
+    IN inCantidad INT
+)
+BEGIN
+    INSERT INTO devolucion (clienteId, bicicletaId, fecha, cantidad)
+    VALUES (inClienteId, inBicicletaId, CURDATE(), inCantidad);
+
+    -- Actualizar el stock de la bicicleta
+    CALL actualizarStockBicicleta(inBicicletaId, inCantidad);
+END $$
+DELIMITER ;
 ```
 
 ## Caso de Uso 10: Generación de Reporte de Compras por Proveedor
